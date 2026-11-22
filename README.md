@@ -14,9 +14,9 @@ NLP_Projects/
 ├── .gitignore
 │
 ├── NLP_bai_tap/
-│   ├── Bai_tap_01/
-│   ├── Bai_tap_02/
-│   ├── Bai_tap_03/
+│   ├── Demo_01/
+│   ├── Demo_02/
+│   ├── Demo_03/
 │   └── ...
 │
 └── NLP_tieu_luan/
