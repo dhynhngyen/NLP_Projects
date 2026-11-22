@@ -49,16 +49,18 @@ Tùy theo yêu cầu của từng bài tập, thư mục có thể bao gồm:
 
 Thư mục này chứa các tài liệu và tệp thực nghiệm phục vụ quá trình nghiên cứu, triển khai và đánh giá nội dung tiểu luận liên quan đến lĩnh vực NLP.
 
-Các thành phần chính có thể bao gồm:
+Các thành phần chính bao gồm:
 
-- **Mã nguồn:** Các chương trình được xây dựng và sử dụng trong quá trình thực nghiệm.
+- **Thư mục Thuc_nghiem_Text_to_SQL:** Các chương trình được xây dựng và sử dụng trong quá trình thực nghiệm.
 - **Jupyter Notebook:** Các notebook phục vụ xử lý dữ liệu, thử nghiệm phương pháp và theo dõi kết quả.
 - **Dữ liệu:** Các bộ dữ liệu được sử dụng trong quá trình thực nghiệm, bao gồm dữ liệu đầu vào và dữ liệu đã qua xử lý (nếu có).
 - **Tệp cấu hình:** Các tệp thiết lập tham số và cấu hình phục vụ quá trình chạy chương trình.
-- **Kết quả thực nghiệm:** Các kết quả, biểu đồ hoặc tài liệu cần thiết để phân tích và đánh giá mô hình.
-
-Các thông tin chi tiết về nguồn dữ liệu, cách chuẩn bị dữ liệu, môi trường và hướng dẫn chạy thực nghiệm nên được trình bày trong file `README_Text2SQL_fine_tuning.md`  và chi tiết cách đánh giá kết quả thông qua chỉ số EX và EM được trình bày trong `README_Text2SQL_Evaluation.md` bên trong thư mục `Thuc_nghiem_Text_to_SQL` của thư mục `NLP_tieu_luan`.
-
+Trong thư mục `Thuc_nghiem_Text_to_SQL` bao gồm:
+- **File process.ipynb**: Chứa mã nguồn chương trình fine tune model t5 small
+- **README_Text2SQL_fine_tuning.md**: Hướng dẫn chuẩn bị dữ liệu, môi trường và hướng dẫn chạy thực nghiệm
+- **README_Text2SQL_Evaluation.md**: Hướng dẫn cách đánh giá kết quả dự đoán của model
+- **File app.py**
+- **File generative_dev_predictions**
 ## 3. Quản lý môi trường và dữ liệu
 
 Các thư mục môi trường Python ảo như `venv`, `.venv`, các thư mục cache và những tệp phát sinh trong quá trình chạy chương trình không được lưu trữ trong repository.
