@@ -12,7 +12,7 @@ NLP_Projects/
 ├── README.md
 │
 ├── .gitignore
-│
+├── .gitattributes
 ├── NLP_bai_tap/
 │   ├── Demo_01/
 │   ├── Demo_02/
@@ -20,13 +20,14 @@ NLP_Projects/
 │   └── ...
 │
 └── NLP_tieu_luan/
+    ├── .vscode
     ├── Thuc_nghiem_Text_to_SQL
         ├── README_Text2SQL_fine_tuning
-        └── README_Text2SQL_Evaluation
-        └── Process.ipynb
+        ├── README_Text2SQL_Evaluation
+        ├── Process.ipynb
         └── ...
     ├── requirements.txt
-    ├── ...
+    └── ...
 ```
 
 ## 2. Nội dung các thư mục
