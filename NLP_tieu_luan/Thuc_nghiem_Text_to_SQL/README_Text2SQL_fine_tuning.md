@@ -1,86 +1,83 @@
 # Thực nghiệm Text-to-SQL với T5-small trên bộ dữ liệu Spider
 
-Thư mục này triển khai một thực nghiệm **Text-to-SQL**: chuyển câu hỏi được viết bằng ngôn ngữ tự nhiên thành câu lệnh SQL. Mô hình sử dụng **T5-small** từ Hugging Face, được fine-tune trên bộ dữ liệu **Spider**. PyTorch thực hiện quá trình huấn luyện và suy luận; thư viện Transformers cung cấp mô hình/tokenizer T5; Gradio tạo giao diện demo trên trình duyệt.
+Thư mục này triển khai thực nghiệm **Text-to-SQL**, chuyển câu hỏi bằng ngôn ngữ tự nhiên thành câu lệnh SQL. Mô hình sử dụng **T5-small** từ Hugging Face và được fine-tune trên bộ dữ liệu **Spider**. PyTorch thực hiện huấn luyện và suy luận; Transformers cung cấp mô hình và tokenizer T5; Gradio tạo giao diện demo trên trình duyệt.
 
-> **Phạm vi ứng dụng:** Người dùng nhập câu hỏi và database schema, mô hình sinh ra câu lệnh SQL dự đoán. `app.py` hiện chỉ sinh SQL, **không kết nối tới cơ sở dữ liệu và không thực thi câu SQL**.
+> **Phạm vi ứng dụng:** Người dùng nhập câu hỏi và database schema, mô hình sinh câu lệnh SQL dự đoán. `app.py` chỉ sinh SQL, **không kết nối tới cơ sở dữ liệu và không thực thi câu SQL**.
 
 ## 1. Cấu trúc thư mục
 
 Cấu trúc liên quan đến thực nghiệm:
 
 ```text
-NLP_tieu_luan/
-└── Thuc_nghiem_text_to_SQL/
-    ├── outputs/
-    │   └── t5_spider_text2sql/
-    │       ├── checkpoint-.../          # Các checkpoint trong quá trình fine-tune
-    │       └── final/                   # Mô hình và tokenizer được lưu sau fine-tune
-    │
-    ├── Spider_data/
-    │   └── spider_data/
-    │       ├── database/
-    │       ├── test_database/
-    │       ├── train_spider.json
-    │       ├── train_others.json        # Có thể có tùy bản Spider
-    │       ├── dev.json
-    │       ├── tables.json
-    │       ├── dev_gold.sql
-    │       ├── test.json
-    │       ├── test_tables.json
-    │       ├── test_gold.sql
-    │       └── README.txt
-    │
-    └── Text2SQL/
-        ├── .gradio/                     # Dữ liệu/cache được Gradio tạo khi chạy (nếu có)
-        ├── model_t5_spider/             # Mô hình T5 đã fine-tune và tokenizer dùng cho demo
-        └── app.py                       # Mã nguồn giao diện Text-to-SQL
+Thuc_nghiem_Text_to_SQL/
+├── app.py                              # Giao diện Gradio và mã suy luận
+├── Spider_data/
+│   └── spider_data/
+│       ├── database/
+│       ├── test_database/
+│       ├── train_spider.json
+│       ├── train_others.json           # Có thể có tùy bản Spider
+│       ├── dev.json
+│       ├── tables.json
+│       ├── dev_gold.sql
+│       ├── test.json
+│       ├── test_tables.json
+│       ├── test_gold.sql
+│       └── README.txt
+└── outputs/
+    └── t5_spider_text2sql/
+        ├── checkpoint-1752/            # Một checkpoint trong quá trình fine-tune
+        ├── checkpoint-2190/            # Checkpoint app.py hiện đang nạp
+        └── final/                      # Bản model/tokenizer được lưu riêng sau fine-tune
 ```
 
 Tên thư mục và chữ hoa/chữ thường phải khớp với đường dẫn trong mã nguồn, đặc biệt khi chạy trên Linux/Ubuntu.
 
 ### Thành phần cần thiết theo mục đích
 
-- **Chỉ chạy giao diện demo:** cần `Text2SQL/app.py` và mô hình đã fine-tune nằm trong `Text2SQL/model_t5_spider/`.
-- **Thực hiện lại fine-tuning:** cần mã nguồn fine-tuning, các tệp Spider được mã nguồn sử dụng (`train_spider.json`, `tables.json`, `dev.json`) và các thư viện huấn luyện.
-- `outputs/t5_spider_text2sql/` lưu checkpoint/kết quả fine-tuning. Thư mục này không được `app.py` đọc trực tiếp; ứng dụng nạp mô hình từ `Text2SQL/model_t5_spider/`.
+- **Chạy giao diện demo:** cần `app.py` và thư mục model mà `MODEL_DIR` trong `app.py` trỏ tới. Với mã hiện tại, đó là `outputs/t5_spider_text2sql/checkpoint-2190/`.
+- **Thực hiện lại fine-tuning:** cần mã nguồn huấn luyện, các tệp Spider được mã nguồn sử dụng (`train_spider.json`, `tables.json`, `dev.json`) và các thư viện huấn luyện.
+- `outputs/t5_spider_text2sql/` lưu checkpoint và bản model được xuất sau fine-tuning. `app.py` hiện nạp trực tiếp `checkpoint-2190`, không tự động nạp thư mục `final`.
+
+> **Lưu ý khi tải repository từ GitHub:** Nếu `.gitignore` loại trừ toàn bộ thư mục `outputs/`, model trong `checkpoint-2190/` sẽ không có trong repository sau khi clone. Khi đó, ứng dụng không thể chạy cho đến khi bạn tự tạo/tải model vào đúng đường dẫn, hoặc đổi `MODEL_DIR` sang một thư mục model được phân phối kèm dự án. Các file trọng số lớn nên được quản lý bằng Git LFS hoặc lưu ở nơi tải xuống riêng; không nên đưa toàn bộ checkpoint và optimizer state lên GitHub nếu không cần thiết.
 
 ## 2. Công nghệ và thư viện sử dụng
 
-| Công nghệ/thư viện | Vai trò trong thực nghiệm                                           |
-| ------------------ | ------------------------------------------------------------------- |
-| Python             | Ngôn ngữ triển khai mã nguồn                                        |
-| PyTorch            | Nền tảng tensor, huấn luyện và suy luận mô hình                     |
-| Transformers       | Tải T5-small, tokenizer, `Seq2SeqTrainer` và sinh SQL               |
-| Datasets           | Đưa dữ liệu Spider vào đối tượng `Dataset` và tiền xử lý theo batch |
-| Accelerate         | Hỗ trợ Transformers trong quá trình huấn luyện                      |
-| SentencePiece      | Thành phần tokenizer cần thiết cho T5                               |
-| Gradio             | Tạo giao diện nhập câu hỏi/schema và hiển thị SQL                   |
-| Safetensors        | Đọc/lưu trọng số mô hình ở định dạng Safetensors khi được sử dụng   |
+| Công nghệ/thư viện | Vai trò trong thực nghiệm |
+| ------------------ | ------------------------- |
+| Python | Ngôn ngữ triển khai mã nguồn |
+| PyTorch | Nền tảng tensor, huấn luyện và suy luận mô hình |
+| Transformers | Tải T5-small, tokenizer, `Seq2SeqTrainer` và sinh SQL |
+| Datasets | Đưa dữ liệu Spider vào đối tượng `Dataset` và tiền xử lý theo batch |
+| Accelerate | Hỗ trợ Transformers trong quá trình huấn luyện |
+| SentencePiece | Thành phần tokenizer cần thiết cho T5 |
+| Gradio | Tạo giao diện nhập câu hỏi/schema và hiển thị SQL |
+| Safetensors | Đọc/lưu trọng số mô hình ở định dạng Safetensors khi được sử dụng |
 
 ### Phiên bản tham khảo của môi trường thực nghiệm
 
-Các phiên bản dưới đây dựa trên môi trường đã dùng cho thực nghiệm:
+Các phiên bản dưới đây được ghi nhận trong môi trường dùng cho thực nghiệm:
 
-| Thành phần    |                          Phiên bản |
-| ------------- | ---------------------------------: |
-| PyTorch       | 2.14.1 (CUDA 12.6 nếu cài bản GPU) |
-| Transformers  |                             5.22.1 |
-| Datasets      |                              5.1.0 |
-| Accelerate    |                             1.15.0 |
-| SentencePiece |                              0.2.2 |
-| Gradio        |                             6.31.0 |
-| Safetensors   |                              0.8.0 |
+| Thành phần | Phiên bản |
+| ----------- | --------: |
+| PyTorch | 2.14.1 (CUDA 12.6 nếu cài bản GPU) |
+| Transformers | 5.22.1 |
+| Datasets | 5.1.0 |
+| Accelerate | 1.15.0 |
+| SentencePiece | 0.2.2 |
+| Gradio | 6.31.0 |
+| Safetensors | 0.8.0 |
 
 Nên sử dụng Python 3.11 trở lên và chọn phiên bản Python được hỗ trợ bởi bản PyTorch cài đặt. Máy không có GPU NVIDIA vẫn có thể chạy bằng CPU, nhưng fine-tuning và suy luận có thể chậm hơn.
 
 ## 3. Chuẩn bị môi trường Python
 
-Mở PowerShell trên Windows hoặc Terminal trên Ubuntu/Linux. Di chuyển đến thư mục `Thuc_nghiem_text_to_SQL` trước khi thực hiện các bước tiếp theo.
+Mở PowerShell trên Windows hoặc Terminal trên Ubuntu/Linux. Di chuyển đến thư mục `Thuc_nghiem_Text_to_SQL` trước khi thực hiện các bước tiếp theo.
 
 ### Windows PowerShell
 
 ```powershell
-cd duong-dan-den\NLP_tieu_luan\Thuc_nghiem_text_to_SQL
+cd duong-dan-den\NLP_tieu_luan\Thuc_nghiem_Text_to_SQL
 
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
@@ -90,14 +87,14 @@ python -m pip install --upgrade pip
 ### Ubuntu/Linux
 
 ```bash
-cd /duong/dan/den/NLP_tieu_luan/Thuc_nghiem_text_to_SQL
+cd /duong/dan/den/NLP_tieu_luan/Thuc_nghiem_Text_to_SQL
 
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 ```
 
-Sau khi kích hoạt thành công, dấu nhắc Terminal thường hiển thị `(.venv)` ở đầu dòng. Tất cả thư viện ở các bước sau sẽ được cài vào môi trường này.
+Sau khi kích hoạt thành công, dấu nhắc Terminal thường hiển thị `(.venv)` ở đầu dòng. Các thư viện ở những bước sau sẽ được cài vào môi trường này.
 
 ## 4. Cài đặt các thư viện cần thiết
 
@@ -117,13 +114,11 @@ python -m pip install torch==2.14.1 --index-url https://download.pytorch.org/whl
 python -m pip install torch==2.14.1 --index-url https://download.pytorch.org/whl/cpu
 ```
 
-Mã nguồn thực nghiệm không import `torchvision`, vì vậy chỉ cài `torch` là đủ cho các đoạn code đã cung cấp. Lệnh cài PyTorch phải phù hợp với hệ điều hành, phiên bản Python và nền tảng tính toán của máy. Có thể chọn lại cấu hình trên trang cài đặt chính thức của PyTorch: <https://pytorch.org/get-started/locally/>.
+Mã nguồn thực nghiệm không import `torchvision`, vì vậy chỉ cài `torch` là đủ cho các đoạn code đã cung cấp. Lệnh cài PyTorch phải phù hợp với hệ điều hành, phiên bản Python và nền tảng tính toán của máy. Có thể chọn cấu hình trên trang cài đặt chính thức: <https://pytorch.org/get-started/locally/>.
 
-Với bản PyTorch dựng sẵn, thông thường không cần cài CUDA Toolkit chỉ để chạy mô hình; tuy nhiên máy dùng GPU vẫn cần driver NVIDIA tương thích. Trên WSL2, driver NVIDIA được cài ở Windows và WSL2 truy cập GPU thông qua driver đó.
+Với bản PyTorch dựng sẵn, thông thường không cần cài CUDA Toolkit chỉ để chạy mô hình; tuy nhiên máy dùng GPU vẫn cần driver NVIDIA tương thích.
 
 ### 4.2. Cài các thư viện cho fine-tuning và demo
-
-Sau khi cài PyTorch, chạy:
 
 ```bash
 python -m pip install \
@@ -145,8 +140,7 @@ Các thư viện `json`, `pathlib` và một số mô-đun khác được sử d
 
 ### 4.3. Kiểm tra môi trường sau khi cài
 
-```bash
-python - <<'PY'
+```python
 import sys
 import torch
 import transformers
@@ -170,12 +164,11 @@ if torch.cuda.is_available():
     print("GPU:", torch.cuda.get_device_name(0))
 else:
     print("Thiết bị: CPU")
-PY
 ```
 
 Nếu `CUDA available` trả về `True`, PyTorch đã nhận diện GPU. Nếu trả về `False`, chương trình vẫn có thể chạy bằng CPU; hãy kiểm tra lại driver NVIDIA và chọn đúng bản PyTorch nếu muốn sử dụng GPU.
 
-Có thể kiểm tra các dependency sau khi cài:
+Kiểm tra dependency sau khi cài:
 
 ```bash
 python -m pip check
@@ -183,20 +176,20 @@ python -m pip check
 
 ## 5. Chuẩn bị bộ dữ liệu Spider
 
-Mã fine-tuning sử dụng các tệp sau trong `Spider_data/spider_data/`:
+Mã fine-tuning sử dụng các tệp trong `Spider_data/spider_data/`:
 
-| Tệp                                                              | Mục đích                                                                                                                                   |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `train_spider.json`                                              | Các câu hỏi, database ID và câu SQL dùng để tạo dữ liệu huấn luyện                                                                         |
-| `tables.json`                                                    | Thông tin schema: bảng, cột, khóa chính và khóa ngoại                                                                                      |
-| `dev.json`                                                       | Dữ liệu validation dùng để đánh giá trong quá trình fine-tuning                                                                            |
-| `database/`                                                      | Các cơ sở dữ liệu SQLite của Spider                                                                                                        |
-| `dev_gold.sql`, `test.json`, `test_tables.json`, `test_gold.sql` | Các tệp phục vụ đánh giá/kiểm tra theo cấu trúc benchmark Spider; đoạn mã fine-tuning được cung cấp không đọc trực tiếp tất cả các tệp này |
+| Tệp/thư mục | Mục đích |
+| ------------ | -------- |
+| `train_spider.json` | Câu hỏi, database ID và câu SQL dùng để tạo dữ liệu huấn luyện |
+| `tables.json` | Metadata schema: bảng, cột, khóa chính và khóa ngoại |
+| `dev.json` | Dữ liệu validation dùng để đánh giá trong quá trình fine-tuning |
+| `database/` | Các cơ sở dữ liệu SQLite của Spider |
+| `dev_gold.sql`, `test.json`, `test_tables.json`, `test_gold.sql` | Các tệp phục vụ đánh giá/kiểm tra theo cấu trúc benchmark Spider; mã fine-tuning không đọc trực tiếp tất cả các tệp này |
 
-Kiểm tra tối thiểu các đường dẫn:
+Cấu trúc tối thiểu:
 
 ```text
-Thuc_nghiem_text_to_SQL/
+Thuc_nghiem_Text_to_SQL/
 └── Spider_data/
     └── spider_data/
         ├── train_spider.json
@@ -210,13 +203,7 @@ Mã nguồn đọc `train_spider.json`, `tables.json` và `dev.json`, sau đó g
 
 ### Lưu ý về đường dẫn trong mã nguồn
 
-Đoạn mã gốc có đường dẫn dạng Windows, ví dụ:
-
-```python
-with open('.\\Spider_data\\spider_data\\train_spider.json', 'r', encoding='utf8') as f:
-```
-
-Nếu chạy trên Ubuntu/Linux, nên đổi sang đường dẫn dùng dấu `/` để thuận tiện cho cả Windows và Linux:
+Nên dùng đường dẫn tương đối có dấu `/` để thuận tiện cho cả Windows và Linux:
 
 ```python
 with open('Spider_data/spider_data/train_spider.json', 'r', encoding='utf8') as f:
@@ -229,11 +216,9 @@ with open('Spider_data/spider_data/dev.json', 'r', encoding='utf8') as f:
     dev_json_contents = json.load(f)
 ```
 
-Hãy chạy mã fine-tuning từ thư mục `Thuc_nghiem_text_to_SQL` để các đường dẫn tương đối ở trên được phân giải đúng. Trong `Seq2SeqTrainingArguments`, nếu `output_dir` đang được viết theo kiểu Windows như `".\\outputs\\t5_spider_text2sql"`, nên đổi thành `"outputs/t5_spider_text2sql"` để dùng cùng một đường dẫn trên Windows và Ubuntu/Linux.
+Hãy chạy mã fine-tuning từ thư mục `Thuc_nghiem_Text_to_SQL` để các đường dẫn tương đối ở trên được phân giải đúng. Trong `Seq2SeqTrainingArguments`, nên dùng `output_dir="outputs/t5_spider_text2sql"` để dùng cùng một kiểu đường dẫn trên Windows và Ubuntu/Linux.
 
 ## 6. Quy trình fine-tune T5-small
-
-Phần này mô tả quy trình theo mã fine-tuning của thực nghiệm.
 
 ### 6.1. Tải mô hình và tokenizer T5-small
 
@@ -250,7 +235,7 @@ model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
 
 ### 6.2. Tạo dữ liệu đầu vào và đầu ra
 
-Mỗi mẫu huấn luyện được tạo thành từ:
+Mỗi mẫu huấn luyện gồm:
 
 - **Input:** câu hỏi tự nhiên và database schema.
 - **Output:** câu SQL tương ứng trong Spider.
@@ -305,120 +290,141 @@ Sau đó, `Dataset.from_list()` tạo dataset và `.map(..., batched=True, batch
 
 Mã nguồn sử dụng `Seq2SeqTrainingArguments` với các thiết lập chính:
 
-| Tham số                       | Giá trị trong thực nghiệm | Ý nghĩa                                                                   |
-| ----------------------------- | ------------------------: | ------------------------------------------------------------------------- |
-| `num_train_epochs`            |                         5 | Huấn luyện tối đa 5 epoch                                                 |
-| `per_device_train_batch_size` |                         4 | 4 mẫu trên mỗi thiết bị trong một batch huấn luyện                        |
-| `per_device_eval_batch_size`  |                         4 | 4 mẫu trên mỗi thiết bị trong một batch đánh giá                          |
-| `gradient_accumulation_steps` |                         4 | Tích lũy gradient qua 4 batch nhỏ trước khi cập nhật theo batch hiệu dụng |
-| `learning_rate`               |                    `5e-5` | Tốc độ học ban đầu                                                        |
-| `weight_decay`                |                    `0.01` | Hệ số regularization weight decay                                         |
-| `warmup_steps`                |                       110 | Số bước warm-up learning rate                                             |
-| `eval_strategy`               |                   `epoch` | Đánh giá sau mỗi epoch                                                    |
-| `save_strategy`               |                   `epoch` | Lưu checkpoint sau mỗi epoch                                              |
-| `logging_steps`               |                        50 | Ghi log sau mỗi 50 bước                                                   |
-| `save_total_limit`            |                         2 | Giới hạn số checkpoint được giữ lại                                       |
-| `load_best_model_at_end`      |                    `True` | Nạp checkpoint tốt nhất ở cuối quá trình train                            |
-| `metric_for_best_model`       |               `eval_loss` | Chọn mô hình tốt nhất dựa trên validation loss                            |
-| `fp16`                        |                   `False` | Không bật huấn luyện FP16 trong cấu hình này                              |
-| `dataloader_num_workers`      |                         0 | Không dùng worker riêng cho DataLoader                                    |
+| Tham số | Giá trị trong thực nghiệm | Ý nghĩa |
+| ------- | ------------------------: | ------- |
+| `num_train_epochs` | 5 | Huấn luyện tối đa 5 epoch |
+| `per_device_train_batch_size` | 4 | 4 mẫu trên mỗi thiết bị trong một batch huấn luyện |
+| `per_device_eval_batch_size` | 4 | 4 mẫu trên mỗi thiết bị trong một batch đánh giá |
+| `gradient_accumulation_steps` | 4 | Tích lũy gradient qua 4 batch nhỏ trước khi cập nhật |
+| `learning_rate` | `5e-5` | Tốc độ học ban đầu |
+| `weight_decay` | `0.01` | Hệ số regularization weight decay |
+| `warmup_steps` | 110 | Số bước warm-up learning rate |
+| `eval_strategy` | `epoch` | Đánh giá sau mỗi epoch |
+| `save_strategy` | `epoch` | Lưu checkpoint sau mỗi epoch |
+| `logging_steps` | 50 | Ghi log sau mỗi 50 bước |
+| `save_total_limit` | 2 | Giới hạn số checkpoint trung gian được giữ lại |
+| `load_best_model_at_end` | `True` | Nạp checkpoint tốt nhất ở cuối quá trình train |
+| `metric_for_best_model` | `eval_loss` | Chọn mô hình tốt nhất dựa trên validation loss |
+| `fp16` | `False` | Không bật huấn luyện FP16 trong cấu hình này |
+| `dataloader_num_workers` | 0 | Không dùng worker riêng cho DataLoader |
 
-Đường dẫn lưu kết quả trong mã nguồn là:
+Thư mục lưu kết quả:
 
 ```text
 outputs/t5_spider_text2sql/
 ```
 
-`save_total_limit=2` giới hạn số checkpoint trung gian được giữ lại. Sau khi huấn luyện, mã nguồn lưu mô hình và tokenizer vào:
+Trong quá trình huấn luyện, Trainer tạo các thư mục checkpoint, ví dụ `checkpoint-1752/` và `checkpoint-2190/`. Mỗi checkpoint có thể chứa trọng số model, cấu hình, trạng thái Trainer và tokenizer/processing class nếu tokenizer được truyền cho Trainer. Việc lưu tokenizer cùng checkpoint giúp checkpoint có đủ thành phần cần thiết để nạp và tiếp tục sử dụng một cách nhất quán.
 
-```text
-outputs/t5_spider_text2sql/final/
+### 6.5. Lưu model và tokenizer sau fine-tuning
+
+Sau khi huấn luyện hoàn tất, mã nguồn lưu model và tokenizer vào thư mục `final/` bằng hai lệnh:
+
+```python
+trainer.save_model(
+    "./outputs/t5_spider_text2sql/final"
+)
+
+tokenizer_t5.save_pretrained(
+    "./outputs/t5_spider_text2sql/final"
+)
 ```
 
-### 6.5. Chạy mã fine-tuning
+Hai lệnh có vai trò khác nhau:
 
-Mở notebook hoặc file Python chứa đoạn mã fine-tuning của thực nghiệm và chạy từ đầu đến cuối, bảo đảm thư mục làm việc hiện tại là `Thuc_nghiem_text_to_SQL`.
+- `trainer.save_model(...)` lưu model đã được Trainer giữ ở thời điểm gọi lệnh, cùng cấu hình cần thiết để nạp model. Nếu đã bật `load_best_model_at_end=True`, Trainer sẽ nạp checkpoint tốt nhất ở cuối quá trình huấn luyện; do đó model được lưu ở `final/` là model tốt nhất được nạp vào Trainer tại thời điểm đó.
+- `tokenizer_t5.save_pretrained(...)` lưu tokenizer vào cùng thư mục `final/`, bao gồm các tệp cấu hình và dữ liệu tokenizer mà phiên bản tokenizer đang dùng yêu cầu.
 
-Nếu bạn lưu mã thành một file Python có tên `process.py`, chạy:
+**Tại sao tokenizer cũng xuất hiện trong các thư mục `checkpoint-*`?** Nếu tokenizer/processing class được truyền cho `Trainer` (ví dụ qua tham số `processing_class` ở các phiên bản Transformers mới), Trainer có thể tự lưu tokenizer cùng mỗi checkpoint khi lưu trạng thái huấn luyện. Vì thế, `checkpoint-1752/` và `checkpoint-2190/` có thể chứa các tệp như `tokenizer.json`, `tokenizer_config.json` hoặc các tệp tokenizer liên quan. Đây là hành vi nhằm giúp mỗi checkpoint có thể được nạp lại cùng bộ tokenizer tương ứng; không có nghĩa tokenizer chỉ được lưu ở checkpoint.
+
+Với lệnh `tokenizer_t5.save_pretrained("./outputs/t5_spider_text2sql/final")`, tokenizer **cũng phải được lưu vào `final/` nếu lệnh đã chạy thành công**. Nếu không thấy các tệp tokenizer ở đó, hãy kiểm tra:
+
+1. Cell/script chứa `tokenizer_t5.save_pretrained(...)` đã thực sự được chạy sau fine-tuning chưa.
+2. Thư mục làm việc hiện tại lúc chạy là thư mục `Thuc_nghiem_Text_to_SQL` hay chưa. Đường dẫn `./outputs/...` được tính tương đối theo thư mục làm việc hiện tại.
+3. Có đang kiểm tra đúng `outputs/t5_spider_text2sql/final/` được tạo bởi lần chạy đó không.
+
+Có thể kiểm tra đường dẫn thực tế bằng:
+
+```python
+from pathlib import Path
+
+final_dir = Path("./outputs/t5_spider_text2sql/final").resolve()
+print(final_dir)
+print([p.name for p in final_dir.iterdir()] if final_dir.exists() else "Chưa có thư mục final")
+```
+
+### 6.6. Chạy mã fine-tuning
+
+Mở notebook hoặc file Python chứa đoạn mã fine-tuning của thực nghiệm và chạy từ đầu đến cuối, bảo đảm thư mục làm việc hiện tại là `Thuc_nghiem_Text_to_SQL`.
+
+Nếu mã được lưu thành file `process.py`, chạy:
 
 ```bash
 python process.py
 ```
 
-Nếu mã đang nằm trong Jupyter Notebook, mở notebook bằng Jupyter và chạy toàn bộ các cell theo đúng thứ tự.
+Nếu mã nằm trong Jupyter Notebook, mở notebook bằng Jupyter và chạy các cell theo đúng thứ tự.
 
-Sau khi hoàn tất, mã nguồn in ra các thông tin như:
+Sau khi hoàn tất, mã nguồn có thể in ra các thông tin như `Best checkpoint`, `Best validation loss` và `Global steps`. Model và tokenizer được lưu vào `outputs/t5_spider_text2sql/final/` theo hai lệnh ở mục 6.5.
 
-- `Best checkpoint`: checkpoint có validation loss tốt nhất.
-- `Best validation loss`: giá trị validation loss tốt nhất.
-- `Global steps`: tổng số bước cập nhật đã thực hiện.
+## 7. Chạy giao diện Text-to-SQL bằng Gradio
 
-Mã nguồn cũng lưu mô hình và tokenizer bằng `save_model()` và `save_pretrained()` vào thư mục `outputs/t5_spider_text2sql/final/`.
-
-## 7. Chuẩn bị mô hình để chạy Gradio
-
-Trong `app.py`, thư mục mô hình được xác định bằng:
+Trong phiên bản `app.py` hiện tại, model được nạp từ checkpoint `checkpoint-2190`:
 
 ```python
-MODEL_DIR = Path(__file__).parent / "model_t5_spider"
+MODEL_DIR = (
+    Path(__file__).parent
+    / "outputs"
+    / "t5_spider_text2sql"
+    / "checkpoint-2190"
+)
+
+tokenizer = AutoTokenizer.from_pretrained(MODEL_DIR)
+model = AutoModelForSeq2SeqLM.from_pretrained(MODEL_DIR)
 ```
 
-Vì vậy, ứng dụng cần có cấu trúc:
+Điều này có nghĩa `app.py` được đặt trực tiếp trong thư mục `Thuc_nghiem_Text_to_SQL/`, cùng cấp với thư mục `outputs/`. Cấu trúc tương ứng:
 
 ```text
-Text2SQL/
+Thuc_nghiem_Text_to_SQL/
 ├── app.py
-└── model_t5_spider/
-    ├── config.json
-    ├── model.safetensors              # hoặc pytorch_model.bin / các shard trọng số
-    ├── tokenizer_config.json
-    ├── spiece.model
-    └── ...                            # các tệp cấu hình/tokenizer khác được lưu cùng mô hình
+├── outputs/
+│   └── t5_spider_text2sql/
+│       ├── checkpoint-1752/
+│       ├── checkpoint-2190/       # app.py hiện đang nạp checkpoint này
+│       └── final/                 # Bản model/tokenizer được xuất riêng
+└── Spider_data/
 ```
 
-Tên tệp thực tế có thể thay đổi theo định dạng lưu mô hình. Cần có đầy đủ cấu hình, trọng số và tệp tokenizer mà `from_pretrained()` yêu cầu.
+`Path(__file__).parent` xác định thư mục chứa chính file `app.py`. Vì vậy, đường dẫn model được xây dựng dựa trên vị trí file, không phụ thuộc Terminal đang mở ở thư mục nào.
 
-Sau khi fine-tune, mô hình nằm tại `outputs/t5_spider_text2sql/final/`. Hãy sao chép **nội dung bên trong** thư mục `final` sang `Text2SQL/model_t5_spider/`.
+**Phân biệt checkpoint và final:** `app.py` hiện đang nạp `checkpoint-2190`, không phải `final/`. Nếu muốn ứng dụng sử dụng model được xuất vào `final/`, hãy đổi phần cuối của `MODEL_DIR` từ `"checkpoint-2190"` thành `"final"`:
 
-### Windows PowerShell
+```python
+MODEL_DIR = (
+    Path(__file__).parent
+    / "outputs"
+    / "t5_spider_text2sql"
+    / "final"
+)
+```
 
-Chạy tại thư mục `Thuc_nghiem_text_to_SQL`:
+Thư mục được chọn phải có đầy đủ file model và tokenizer để `from_pretrained()` nạp thành công.
+
+### Khởi chạy ứng dụng
+
+Mở Terminal tại thư mục thực nghiệm:
 
 ```powershell
-New-Item -ItemType Directory -Force .\Text2SQL\model_t5_spider
-Copy-Item .\outputs\t5_spider_text2sql\final\* .\Text2SQL\model_t5_spider\ -Recurse -Force
-```
-
-### Ubuntu/Linux
-
-Chạy tại thư mục `Thuc_nghiem_text_to_SQL`:
-
-```bash
-mkdir -p Text2SQL/model_t5_spider
-cp -a outputs/t5_spider_text2sql/final/. Text2SQL/model_t5_spider/
-```
-
-Sau khi sao chép, các tệp mô hình phải nằm trực tiếp trong `model_t5_spider/`, không nằm sâu thêm trong `model_t5_spider/final/`.
-
-## 8. Chạy giao diện Text-to-SQL bằng Gradio
-
-Di chuyển vào thư mục chứa `app.py`:
-
-```bash
-cd Text2SQL
-```
-
-Khởi chạy:
-
-```bash
+cd duong-dan-den\NLP_tieu_luan\Thuc_nghiem_Text_to_SQL
 python app.py
 ```
 
-Ứng dụng thực hiện các bước:
+Ứng dụng sẽ:
 
 1. Chọn `cuda` nếu `torch.cuda.is_available()` trả về `True`; nếu không, chọn `cpu`.
-2. Nạp tokenizer từ `model_t5_spider/`.
-3. Nạp mô hình T5 đã fine-tune từ `model_t5_spider/`.
+2. Nạp tokenizer từ `MODEL_DIR`.
+3. Nạp mô hình T5 đã fine-tune từ `MODEL_DIR`.
 4. Chuyển mô hình sang thiết bị đã chọn và gọi `model.eval()`.
 5. Khởi chạy giao diện Gradio.
 
@@ -430,7 +436,7 @@ http://127.0.0.1:7860
 
 Để dừng ứng dụng, quay lại Terminal và nhấn `Ctrl + C`.
 
-## 9. Cách sử dụng giao diện
+## 8. Cách sử dụng giao diện
 
 Giao diện có hai ô nhập:
 
@@ -455,7 +461,7 @@ song.Singer_ID <-> singer.Singer_ID
 
 Nhấn nút gửi trong giao diện. SQL do mô hình dự đoán sẽ xuất hiện ở ô kết quả.
 
-Định dạng input mà `app.py` tạo ra là:
+Hàm `build_input()` trong `app.py` tạo định dạng:
 
 ```text
 Question: <câu hỏi>
@@ -464,7 +470,7 @@ Schema: <database schema>
 
 Vì vậy, schema nên nêu rõ tên bảng, tên cột và quan hệ khóa ngoại. Schema cần mô tả đúng cơ sở dữ liệu mà câu hỏi đề cập.
 
-## 10. Cách `app.py` sinh SQL
+## 9. Cách `app.py` sinh SQL
 
 Hàm `predict_sql(question, schema)` thực hiện các bước chính:
 
@@ -474,18 +480,20 @@ Hàm `predict_sql(question, schema)` thực hiện các bước chính:
 4. Chuyển tensor sang cùng thiết bị với mô hình (GPU hoặc CPU).
 5. Gọi `model.generate()` để sinh SQL với các tham số hiện tại:
 
-   | Tham số          | Giá trị | Ý nghĩa                          |
-   | ---------------- | ------: | -------------------------------- |
-   | `max_new_tokens` |     256 | Số token mới tối đa được sinh    |
-   | `num_beams`      |       4 | Beam search giữ 4 nhánh ứng viên |
-   | `do_sample`      | `False` | Không lấy mẫu ngẫu nhiên         |
+   | Tham số | Giá trị | Ý nghĩa |
+   | ------- | ------: | ------- |
+   | `max_new_tokens` | 256 | Số token mới tối đa được sinh |
+   | `num_beams` | 4 | Beam search giữ 4 nhánh ứng viên |
+   | `do_sample` | `False` | Không lấy mẫu ngẫu nhiên |
 
 6. Gọi `tokenizer.decode()` để chuyển token ID đầu ra thành chuỗi SQL.
 7. Trả SQL cho Gradio hiển thị.
 
-## 11. Kiểm tra và xử lý lỗi thường gặp
+Ứng dụng dùng `torch.inference_mode()` khi suy luận để không tính gradient trong quá trình dự đoán.
 
-### 11.1. Thiếu thư viện Python
+## 10. Kiểm tra và xử lý lỗi thường gặp
+
+### 10.1. Thiếu thư viện Python
 
 Nếu gặp `ModuleNotFoundError`, hãy xác nhận đã kích hoạt đúng môi trường Python và cài các thư viện ở mục 4.2:
 
@@ -495,7 +503,7 @@ python -m pip install transformers datasets accelerate sentencepiece gradio safe
 
 Nếu thiếu PyTorch, cài bản CPU hoặc GPU theo mục 4.1.
 
-### 11.2. PyTorch không nhận GPU
+### 10.2. PyTorch không nhận GPU
 
 Chạy:
 
@@ -505,15 +513,16 @@ python -c "import torch; print('CUDA:', torch.cuda.is_available()); print(torch.
 
 Nếu `torch.cuda.is_available()` là `False`, ứng dụng vẫn chọn CPU. Muốn dùng GPU NVIDIA, kiểm tra driver và cài đúng wheel CUDA của PyTorch tại <https://pytorch.org/get-started/locally/>.
 
-### 11.3. Không tìm thấy mô hình/tokenizer
+### 10.3. Không tìm thấy mô hình/tokenizer
 
 Kiểm tra:
 
-- Có thư mục `Text2SQL/model_t5_spider/` hay chưa.
-- Thư mục có đầy đủ tệp cấu hình, trọng số và tokenizer không.
-- Các tệp nằm trực tiếp trong `model_t5_spider/`, không bị lồng thêm một thư mục `final/`.
+- `MODEL_DIR` trong `app.py` trỏ đúng thư mục tồn tại hay chưa.
+- Thư mục đó có đầy đủ cấu hình, trọng số và tệp tokenizer không.
+- Các file nằm trực tiếp trong thư mục checkpoint/model đã chọn, không bị lồng thêm một thư mục không mong muốn.
+- Nếu dùng `checkpoint-2190`, thư mục `outputs/t5_spider_text2sql/checkpoint-2190/` phải tồn tại. Nếu dùng `final`, cần có `outputs/t5_spider_text2sql/final/`.
 
-### 11.4. Không tìm thấy dữ liệu Spider khi fine-tune
+### 10.4. Không tìm thấy dữ liệu Spider khi fine-tune
 
 Kiểm tra đường dẫn và chữ hoa/chữ thường của:
 
@@ -523,17 +532,17 @@ Spider_data/spider_data/tables.json
 Spider_data/spider_data/dev.json
 ```
 
-Đồng thời bảo đảm đang chạy notebook/script từ thư mục `Thuc_nghiem_text_to_SQL` hoặc điều chỉnh các đường dẫn tương đối cho phù hợp.
+Đồng thời bảo đảm đang chạy notebook/script từ thư mục `Thuc_nghiem_Text_to_SQL` hoặc điều chỉnh các đường dẫn tương đối cho phù hợp.
 
-### 11.5. Lần đầu tải mô hình T5 bị lỗi kết nối
+### 10.5. Lần đầu tải mô hình T5 bị lỗi kết nối
 
 `AutoTokenizer.from_pretrained("google-t5/t5-small")` và `AutoModelForSeq2SeqLM.from_pretrained("google-t5/t5-small")` cần tải mô hình/tokenizer từ Hugging Face Hub nếu máy chưa có cache. Kiểm tra kết nối Internet rồi chạy lại.
 
-### 11.6. SQL dự đoán không chính xác
+### 10.6. SQL dự đoán không chính xác
 
 Mô hình sinh SQL dựa trên câu hỏi và schema được cung cấp. Kết quả có thể sai bảng, sai cột, sai điều kiện JOIN hoặc sai logic. Cần kiểm tra schema đầu vào và xác thực SQL trước khi sử dụng. Ứng dụng demo hiện không thực thi câu SQL trên database.
 
-## 12. Tài liệu tham khảo
+## 11. Tài liệu tham khảo
 
 - PyTorch – Get Started: <https://pytorch.org/get-started/locally/>
 - PyTorch – Previous Versions: <https://pytorch.org/get-started/previous-versions/>
@@ -545,4 +554,4 @@ Mô hình sinh SQL dựa trên câu hỏi và schema được cung cấp. Kết 
 
 ---
 
-**Tóm tắt quy trình:** Tạo môi trường Python mới → cài PyTorch và các thư viện cần thiết → chuẩn bị Spider → fine-tune T5-small → sao chép mô hình tốt nhất vào `Text2SQL/model_t5_spider/` → chạy `python app.py` → nhập câu hỏi và database schema để nhận SQL dự đoán.
+**Tóm tắt quy trình:** Tạo môi trường Python mới → cài PyTorch và các thư viện cần thiết → chuẩn bị Spider → fine-tune T5-small → lưu model và tokenizer vào `outputs/t5_spider_text2sql/final/` → chọn checkpoint/model muốn dùng trong `MODEL_DIR` của `app.py` (hiện tại là `checkpoint-2190`) → chạy `python app.py` → nhập câu hỏi và database schema để nhận SQL dự đoán.
