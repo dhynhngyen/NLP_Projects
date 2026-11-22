@@ -1,0 +1,3 @@
+type: OpenNMTTokenizer
+params:
+  mode: aggressive

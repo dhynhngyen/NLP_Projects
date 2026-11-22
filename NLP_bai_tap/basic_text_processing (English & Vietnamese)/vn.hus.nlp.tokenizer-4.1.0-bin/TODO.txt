@@ -1,0 +1,32 @@
+Các từ bị vnTokenizer nhận dạng là name có âm tiết đầu tiên (chữ cái đầu viết hoa) thì cần tách ra:
+
+a) Đại từ:
+
+	ông
+	bà
+	bác
+	chú
+	cô
+	thím
+	dì
+	cậu
+	mợ
+	o
+	anh
+	chị
+	thằng
+	
+b) 
+
+	theo
+	
+c) Các từ đơn vị:
+
+	thành phố
+	tỉnh
+	bộ
+	sở
+	cục
+	ban
+	ngành
+	 

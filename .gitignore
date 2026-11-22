@@ -1,0 +1,100 @@
+# ==================================
+# 1. Python environments
+# ==================================
+**/venv/
+**/.venv/
+**/.venv310/
+**/.venv_NLP/
+**/env/
+
+# ==================================
+# 2. Python cache
+# ==================================
+**/__pycache__/
+*.py[cod]
+
+# ==================================
+# 3. Gradio
+# ==================================
+**/.gradio/
+
+# ==================================
+# 4. Jupyter
+# ==================================
+**/.ipynb_checkpoints/
+
+# ==================================
+# 5. Training checkpoints and states
+# ==================================
+**/run_en_vi/ckpt-*
+**/outputs/checkpoint-*/
+**/optimizer.pt
+**/scheduler.pt
+# ==================================
+# NLP_tieu_luan
+# ==================================
+
+# Directories at any depth inside NLP_tieu_luan
+/NLP_tieu_luan/Thuc_nghiem_Text_to_SQL/Text2SQL/
+/NLP_tieu_luan/Thuc_nghiem_Text_to_SQL/evaluation_outputs/
+/NLP_tieu_luan/Thuc_nghiem_Text_to_SQL/outputs/
+# Spider evaluator
+/NLP_tieu_luan/Thuc_nghiem_Text_to_SQL/Spider_evaluator
+
+# Files at any depth inside NLP_tieu_luan
+/NLP_tieu_luan/**/test.py
+/NLP_tieu_luan/**/test.ipynb
+# ==================================
+# 7. NLP_bai_tap - ATC_Vietnamese_Demo
+# ==================================
+
+/NLP_bai_tap/ATC_Vietnamese_Demo/data/
+/NLP_bai_tap/ATC_Vietnamese_Demo/models/
+/NLP_bai_tap/ATC_Vietnamese_Demo/raw_uit_vsfc/
+/NLP_bai_tap/ATC_Vietnamese_Demo/results/
+
+# ==================================
+# 8. NLP_bai_tap - noi_dung_lat_vat
+# ==================================
+
+/NLP_bai_tap/noi_dung_lat_vat/
+
+# ==================================
+# 9. NLP_bai_tap - OpenNMT-tf
+# ==================================
+
+# en_vi_project
+/NLP_bai_tap/opennmt_tf_demo/en_vi_project/data/
+/NLP_bai_tap/opennmt_tf_demo/en_vi_project/run_en_vi/
+/NLP_bai_tap/opennmt_tf_demo/en_vi_project/run_en_vi_backup/
+/NLP_bai_tap/opennmt_tf_demo/en_vi_project/src-vocab.txt
+/NLP_bai_tap/opennmt_tf_demo/en_vi_project/tgt-vocab.txt
+/NLP_bai_tap/opennmt_tf_demo/en_vi_project/toy-ende/
+
+# toy-ende archive
+/NLP_bai_tap/opennmt_tf_demo/toy-ende.tar.gz
+
+# ==================================
+# 10. Environment variables
+# ==================================
+.env
+.env.*
+!.env.example
+
+# ==================================
+# 11. Operating system files
+# ==================================
+.DS_Store
+Thumbs.db
+
+# ==================================
+# 12. Other generated files
+# ==================================
+*.log
+*.tmp
+
+# Ignore OpenNMT toy dataset
+/NLP_bai_tap/opennmt_tf_demo/toy-ende/
+
+# Ignore Spider evaluator
+/NLP_tieu_luan/Thuc_nghiem_Text_to_SQL/Spider_evaluator/

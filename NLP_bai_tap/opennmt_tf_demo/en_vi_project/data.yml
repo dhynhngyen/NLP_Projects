@@ -1,0 +1,32 @@
+model_dir: run_en_vi
+
+data:
+  train_features_file: data/train.en
+  train_labels_file: data/train.vi
+
+  eval_features_file: data/valid.en
+  eval_labels_file: data/valid.vi
+
+  source_vocabulary: src-vocab.txt
+  target_vocabulary: tgt-vocab.txt
+
+  source_tokenization: tokenizer.yml
+  target_tokenization: tokenizer.yml
+
+train:
+  batch_type: examples
+  batch_size: 16
+  effective_batch_size: 16
+
+  max_step: 5000
+  save_checkpoints_steps: 500
+  keep_checkpoint_max: 3
+
+  sample_buffer_size: 10000
+
+eval:
+  batch_size: 16
+  steps: 1000
+  scorers:
+    - bleu
+    - chrf
