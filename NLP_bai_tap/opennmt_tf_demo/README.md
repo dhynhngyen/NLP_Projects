@@ -29,15 +29,17 @@ Quy trình GPU trong tài liệu được xây dựng trên **Windows 11 + WSL2 
 - **TensorFlow:** framework thực hiện tính toán mạng nơ-ron, tính loss/gradient và cập nhật trọng số.
 - **OpenNMT-tf:** bộ công cụ xây dựng trên TensorFlow, hỗ trợ xử lý dữ liệu, huấn luyện, đánh giá và suy luận cho bài toán dịch máy.
 - **YAML:** các file cấu hình để OpenNMT-tf biết nơi lấy dữ liệu, cách tokenization, vocabulary và thiết lập huấn luyện/đánh giá.
+- **Jupyter Notebook:** chạy `prepare_data.ipynb` để tải/chuẩn bị dữ liệu và tạo các file song ngữ đầu vào cho OpenNMT-tf.
 
 ## 2. Cấu trúc thư mục dự án
 
-Cấu trúc đề xuất:
+Cấu trúc đề xuất sau khi chuẩn bị dữ liệu:
 
 ```text
 opennmt_tf_demo/
 ├── .venv/                         # Môi trường Python ảo
 └── en_vi_project/
+    ├── prepare_data.ipynb         # Notebook tải/chuẩn bị và chia dữ liệu
     ├── data/
     │   ├── train.en               # Câu tiếng Anh dùng để huấn luyện
     │   ├── train.vi               # Câu tiếng Việt tương ứng
@@ -45,10 +47,12 @@ opennmt_tf_demo/
     │   └── valid.vi               # Câu tiếng Việt tương ứng
     ├── tokenizer.yml              # Cấu hình tokenizer
     ├── data.yml                   # Cấu hình dữ liệu/train/eval
-    ├── src-vocab.txt              # Vocabulary tiếng Anh
-    ├── tgt-vocab.txt              # Vocabulary tiếng Việt
-    └── run_en_vi/                 # Checkpoint, log và kết quả đánh giá
+    ├── src-vocab.txt              # Vocabulary tiếng Anh (được tạo sau bước chuẩn bị dữ liệu)
+    ├── tgt-vocab.txt              # Vocabulary tiếng Việt (được tạo sau bước chuẩn bị dữ liệu)
+    └── run_en_vi/                 # Checkpoint, log và kết quả đánh giá (được tạo khi chạy)
 ```
+
+Các file `data/`, vocabulary và `run_en_vi/` có thể chưa tồn tại trong repository ban đầu. Chúng được tạo ở các bước chuẩn bị dữ liệu, xây dựng vocabulary và huấn luyện bên dưới.
 
 Các file dữ liệu song ngữ phải có cùng số dòng theo từng cặp:
 
@@ -57,7 +61,7 @@ Các file dữ liệu song ngữ phải có cùng số dòng theo từng cặp:
 
 Mỗi dòng nên chứa một câu. Hãy bảo đảm dữ liệu được lưu bằng UTF-8 và đã được làm sạch theo cùng một quy tắc.
 
-> **Dữ liệu:** README này mô tả định dạng và vị trí các file. Người chạy cần có bộ dữ liệu song ngữ Anh–Việt phù hợp và có quyền sử dụng. Nếu dữ liệu không được commit trong repository, hãy tự đặt các file vào thư mục `data/` theo đúng tên ở trên.
+> **Dữ liệu:** `prepare_data.ipynb` là bước bắt buộc trước khi tạo vocabulary và huấn luyện. Notebook có nhiệm vụ chuẩn bị dữ liệu theo mã được viết trong notebook. Sau khi chạy hoàn tất, cần kiểm tra notebook đã tạo đúng bốn file `train.en`, `train.vi`, `valid.en`, `valid.vi` trong thư mục `data/`. README này mô tả các file đầu ra mà cấu hình OpenNMT-tf cần; nguồn tải dữ liệu, tên bộ dữ liệu đầu vào và cách chia tập cụ thể được xác định bởi nội dung thực tế của `prepare_data.ipynb`.
 
 ## 3. Chuẩn bị Windows và WSL2
 
@@ -145,10 +149,15 @@ sudo apt install -y python3-venv python3-pip build-essential
 
 ### 5.2. Tạo thư mục dự án và môi trường ảo
 
-```bash
-mkdir -p ~/projects/opennmt_tf_demo/en_vi_project
-cd ~/projects/opennmt_tf_demo
+Nếu bạn đã clone repository hoặc tải thư mục dự án về WSL, hãy `cd` đến đúng thư mục `opennmt_tf_demo`. Ví dụ:
 
+```bash
+cd ~/projects/opennmt_tf_demo
+```
+
+Tạo và kích hoạt môi trường ảo:
+
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
 
@@ -167,13 +176,49 @@ python -m pip install "nvidia-cudnn-cu11==8.6.0.163"
 python -m pip install "OpenNMT-tf==2.32.0"
 ```
 
-Kiểm tra phiên bản:
+### 5.4. Cài Jupyter để chạy `prepare_data.ipynb`
+
+Notebook cần được chạy bằng kernel thuộc chính môi trường `.venv` vừa tạo. Khi môi trường ảo đang được kích hoạt, cài Jupyter và `ipykernel`:
+
+```bash
+python -m pip install jupyter ipykernel
+```
+
+Đăng ký môi trường này làm kernel Jupyter:
+
+```bash
+python -m ipykernel install --user --name opennmt-tf-demo --display-name "Python (OpenNMT-tf Demo)"
+```
+
+Nếu `prepare_data.ipynb` import thêm thư viện Python nào chưa có, hãy cài thư viện đó vào chính môi trường `.venv` bằng `python -m pip install <ten-thu-vien>`. Không cài vào một Python khác ngoài môi trường dự án.
+
+### 5.5. Cài các thư viện còn lại cho fine-tuning và demo
+
+```bash
+python -m pip install \
+  transformers==5.22.1 \
+  datasets==5.1.0 \
+  accelerate==1.15.0 \
+  sentencepiece==0.2.2 \
+  gradio==6.31.0 \
+  safetensors==0.8.0
+```
+
+Nếu cần mở notebook bằng Jupyter trong trình duyệt, các gói `jupyter` và `ipykernel` đã được cài ở mục 5.4.
+
+### 5.6. Kiểm tra môi trường sau khi cài
 
 ```bash
 python - <<'PY'
+import sys
 import tensorflow as tf
+import onmt
+import gradio
+
+print("Python:", sys.version)
 print("TensorFlow:", tf.__version__)
-print("Build info:", tf.sysconfig.get_build_info())
+print("OpenNMT-tf:", getattr(onmt, "__version__", "Không đọc được thuộc tính __version__"))
+print("Gradio:", gradio.__version__)
 print("GPU devices:", tf.config.list_physical_devices("GPU"))
 PY
 
@@ -248,52 +293,84 @@ echo "$LD_LIBRARY_PATH"
 
 > Hàm trên giả định môi trường ảo nằm tại `~/projects/opennmt_tf_demo/.venv` và CUDA Toolkit tại `/usr/local/cuda-11.8`. Nếu thay đổi vị trí hoặc phiên bản, cần cập nhật đường dẫn tương ứng. Không cần cài lại CUDA/TensorFlow mỗi lần mở Ubuntu.
 
-## 7. Kiểm tra TensorFlow có nhận GPU không
+## 7. Chuẩn bị dữ liệu bằng `prepare_data.ipynb` (bắt buộc)
 
-Sau khi chạy `activate_opennmt`, thực hiện:
+**Phải chạy notebook này trước khi tạo vocabulary, chạy huấn luyện, đánh giá hoặc inference.** Các lệnh OpenNMT-tf ở các phần sau sử dụng dữ liệu nằm trong thư mục `data/`, vì vậy cần tạo dữ liệu trước.
 
-```bash
-python - <<'PY'
-import tensorflow as tf
+### 7.1. Xác nhận vị trí notebook
 
-print("TensorFlow:", tf.__version__)
-gpus = tf.config.list_physical_devices("GPU")
-print("GPU:", gpus)
+Notebook được đặt trong thư mục `en_vi_project`:
 
-if not gpus:
-    raise SystemExit("TensorFlow chưa nhận GPU. Kiểm tra driver WSL, CUDA/cuDNN và LD_LIBRARY_PATH.")
-
-for gpu in gpus:
-    tf.config.experimental.set_memory_growth(gpu, True)
-
-with tf.device("/GPU:0"):
-    a = tf.random.normal([2048, 2048])
-    b = tf.random.normal([2048, 2048])
-    c = tf.matmul(a, b)
-
-print("Kết quả được đặt trên:", c.device)
-print("GPU test completed.")
-PY
+```text
+opennmt_tf_demo/
+├── .venv/
+└── en_vi_project/
+    └── prepare_data.ipynb
 ```
 
-Nếu `GPU` có thiết bị `GPU:0` và phép nhân ma trận được đặt trên `/device:GPU:0`, TensorFlow đã nhận và thực hiện phép tính trên GPU.
-
-Có thể mở một Ubuntu Terminal khác và theo dõi GPU trong lúc chương trình chạy:
-
-```bash
-watch -n 1 nvidia-smi
-```
-
-## 8. Chuẩn bị dữ liệu dịch Anh–Việt
-
-Trong thư mục dự án:
+Trong Ubuntu, di chuyển đến thư mục này:
 
 ```bash
 cd ~/projects/opennmt_tf_demo/en_vi_project
-mkdir -p data
 ```
 
-Đặt bốn file dữ liệu vào `data/`:
+Nếu bạn đặt dự án ở vị trí khác, thay đường dẫn `~/projects/opennmt_tf_demo/en_vi_project` bằng đường dẫn thực tế.
+
+### 7.2. Mở notebook bằng Jupyter
+
+Đảm bảo môi trường `.venv` đã được kích hoạt. Nếu chưa, chạy:
+
+```bash
+source ../.venv/bin/activate
+```
+
+Nếu bạn đã tạo hàm `activate_opennmt` ở mục 6, có thể dùng:
+
+```bash
+activate_opennmt
+```
+
+Khởi chạy notebook:
+
+```bash
+jupyter notebook prepare_data.ipynb
+```
+
+Jupyter sẽ mở notebook trong trình duyệt. Nếu trình duyệt không tự mở, Terminal sẽ in địa chỉ local có token; sao chép địa chỉ đó vào trình duyệt.
+
+### 7.3. Chọn đúng Python kernel
+
+Trong giao diện notebook:
+
+1. Mở menu chọn Kernel ở góc trên bên phải.
+2. Chọn kernel **Python (OpenNMT-tf Demo)** đã đăng ký ở mục 5.4.
+3. Nếu kernel này không xuất hiện, kiểm tra lại việc cài `ipykernel` và đăng ký kernel trong đúng môi trường `.venv`.
+4. Có thể chạy cell kiểm tra sau để xác nhận Python đang được sử dụng:
+
+```python
+import sys
+print(sys.executable)
+```
+
+Đường dẫn in ra phải trỏ đến môi trường `.venv` của dự án, không phải một Python khác của Windows hoặc Ubuntu.
+
+### 7.4. Chạy toàn bộ notebook
+
+Trong Jupyter, chọn **Kernel → Restart Kernel and Run All Cells** (hoặc lệnh tương đương trong phiên bản Jupyter bạn đang dùng). Chạy các cell từ đầu đến cuối theo đúng thứ tự và chờ đến khi tất cả cell hoàn thành.
+
+Notebook có thể cần kết nối Internet nếu có bước tải dữ liệu. Nếu một cell báo thiếu thư viện, đọc tên module trong lỗi, cài thư viện đó vào môi trường `.venv`, sau đó khởi động lại kernel và chạy lại notebook.
+
+> **Lưu ý:** Đường dẫn nguồn dữ liệu, cách tải và cách chia tập được quyết định bởi nội dung của `prepare_data.ipynb`. Không tự đổi tên hoặc di chuyển các file đầu ra nếu chưa cập nhật các đường dẫn tương ứng trong notebook và `data.yml`.
+
+### 7.5. Kiểm tra dữ liệu được tạo ra
+
+Sau khi notebook chạy hoàn tất, quay lại Terminal Ubuntu tại `en_vi_project` và chạy:
+
+```bash
+ls -lh data/
+```
+
+Cấu hình trong README này yêu cầu tối thiểu bốn file:
 
 ```text
 data/
@@ -303,26 +380,29 @@ data/
 └── valid.vi
 ```
 
-Ý nghĩa:
-
-| File | Nội dung |
-|---|---|
-| `train.en` | Câu tiếng Anh dùng để huấn luyện |
-| `train.vi` | Bản dịch tiếng Việt tương ứng |
-| `valid.en` | Câu tiếng Anh dùng để đánh giá |
-| `valid.vi` | Bản dịch tiếng Việt chuẩn để đối chiếu |
-
 Kiểm tra số dòng:
 
 ```bash
 wc -l data/train.en data/train.vi data/valid.en data/valid.vi
 ```
 
-`train.en` phải có số dòng bằng `train.vi`; `valid.en` phải có số dòng bằng `valid.vi`. Cần kiểm tra nội dung thực tế để bảo đảm các dòng cùng vị trí là cặp câu dịch tương ứng, không chỉ kiểm tra số dòng.
+`train.en` phải có số dòng bằng `train.vi`; `valid.en` phải có số dòng bằng `valid.vi`. Kiểm tra thêm rằng các file không rỗng:
 
-## 9. Cấu hình tokenizer và vocabulary
+```bash
+for f in data/train.en data/train.vi data/valid.en data/valid.vi; do
+    test -s "$f" && echo "OK: $f" || echo "THIẾU HOẶC RỖNG: $f"
+done
+```
 
-### 9.1. Tạo `tokenizer.yml`
+Nếu notebook tạo file với tên hoặc vị trí khác, hãy điều chỉnh notebook hoặc cập nhật các đường dẫn trong `data.yml` cho khớp. Chỉ chuyển sang bước tiếp theo khi bốn file đã tồn tại, không rỗng và hai cặp train/validation có số dòng tương ứng.
+
+### 7.6. Đóng Jupyter
+
+Sau khi dữ liệu được tạo và kiểm tra, quay lại Terminal đang chạy Jupyter, nhấn `Ctrl+C` và xác nhận dừng server nếu được hỏi. Bạn cũng có thể để Jupyter chạy trong khi tiếp tục làm việc ở một Terminal khác.
+
+## 8. Cấu hình tokenizer và vocabulary
+
+### 8.1. Tạo `tokenizer.yml`
 
 Tạo file `tokenizer.yml` trong `en_vi_project/`:
 
@@ -334,9 +414,9 @@ params:
 
 File này quy định OpenNMT-tf sử dụng `OpenNMTTokenizer` ở chế độ `aggressive` để tokenization văn bản. Cùng một file cấu hình được tham chiếu cho cả ngôn ngữ nguồn và ngôn ngữ đích trong thực nghiệm này.
 
-### 9.2. Tạo vocabulary
+### 8.2. Tạo vocabulary
 
-Sau khi chuẩn bị dữ liệu và tokenizer, tạo vocabulary riêng cho tiếng Anh và tiếng Việt:
+**Chỉ chạy bước này sau khi đã hoàn thành mục 7 và kiểm tra các file dữ liệu.** Tạo vocabulary riêng cho tiếng Anh và tiếng Việt:
 
 ```bash
 onmt-build-vocab \
@@ -363,7 +443,7 @@ head -n 10 tgt-vocab.txt
 
 OpenNMT-tf yêu cầu vocabulary có các token đặc biệt ở đầu file; xem tài liệu Vocabulary trong phần tham khảo.
 
-## 10. Tạo file cấu hình `data.yml`
+## 9. Tạo file cấu hình `data.yml`
 
 Tạo `data.yml` trong thư mục `en_vi_project/` với nội dung:
 
@@ -427,13 +507,23 @@ eval:
 
 `--auto_config` ở lệnh chạy bên dưới yêu cầu OpenNMT-tf sử dụng các thiết lập mặc định phù hợp với loại mô hình. Có thể khai báo thêm tham số mô hình trong YAML khi cần tùy chỉnh.
 
-## 11. Huấn luyện mô hình Transformer
+## 10. Huấn luyện mô hình Transformer
 
-Đảm bảo đã kích hoạt môi trường:
+Trước khi huấn luyện, bảo đảm đã hoàn thành các bước sau:
+
+- Đã chạy hết `prepare_data.ipynb` và có đủ `data/train.en`, `data/train.vi`, `data/valid.en`, `data/valid.vi`.
+- Đã tạo `tokenizer.yml`, `src-vocab.txt`, `tgt-vocab.txt` và `data.yml`.
+- Đang đứng trong thư mục `en_vi_project` và đã kích hoạt môi trường `.venv`.
 
 ```bash
 activate_opennmt
 cd ~/projects/opennmt_tf_demo/en_vi_project
+```
+
+Nếu không sử dụng hàm `activate_opennmt`, hãy kích hoạt trực tiếp môi trường:
+
+```bash
+source ../.venv/bin/activate
 ```
 
 Chạy huấn luyện kết hợp đánh giá định kỳ:
@@ -491,7 +581,7 @@ Việc khôi phục checkpoint không có nghĩa mọi bước kể từ lần l
 
 Khi đã đạt `max_step: 5000`, muốn huấn luyện tiếp đến step 10.000 thì cần cập nhật `max_step` thành `10000`, sau đó chạy lại lệnh `train`. `max_step` là mốc step đích, không phải số step cộng thêm cho mỗi lần chạy.
 
-## 12. Đánh giá mô hình sau huấn luyện
+## 11. Đánh giá mô hình sau huấn luyện
 
 Chạy:
 
@@ -518,7 +608,7 @@ OpenNMT-tf sử dụng dữ liệu validation đã khai báo trong `data.yml` v�
 
 Các điểm BLEU và chrF trên còn thấp, do đó kết quả hiện tại chỉ nên được xem là một lần chạy thử nghiệm ban đầu, chưa phải mô hình dịch máy có chất lượng sử dụng thực tế. Cần kiểm tra dữ liệu song ngữ, tokenization, vocabulary, các bản dịch dự đoán và quá trình học trước khi kết luận nguyên nhân hoặc tăng số bước huấn luyện.
 
-## 13. Chạy thử dịch máy (Inference)
+## 12. Chạy thử dịch máy (Inference)
 
 Tạo file văn bản đầu vào, ví dụ `data/test_input.en`:
 
@@ -540,11 +630,7 @@ onmt-main \
   --predictions_file predictions_test.vi
 ```
 
-Kết quả được ghi vào:
-
-```text
-predictions_test.vi
-```
+Kết quả được ghi vào `predictions_test.vi`.
 
 Xem kết quả:
 
@@ -554,7 +640,7 @@ cat predictions_test.vi
 
 `infer` chỉ sử dụng checkpoint để dự đoán, không cập nhật trọng số mô hình. Có thể chạy inference sau khi đã có checkpoint được lưu.
 
-## 14. Một số lỗi thường gặp
+## 13. Một số lỗi thường gặp
 
 ### TensorFlow trả về `GPU: []`
 
@@ -608,6 +694,16 @@ Sau đó di chuyển đến thư mục có `data.yml`:
 cd ~/projects/opennmt_tf_demo/en_vi_project
 ```
 
+### `prepare_data.ipynb` không tạo ra các file dữ liệu
+
+- Bảo đảm đã chọn kernel `Python (OpenNMT-tf Demo)`.
+- Chạy lại notebook từ đầu bằng **Restart Kernel and Run All Cells**.
+- Đọc cell lỗi đầu tiên và xử lý nguyên nhân trước khi chạy các cell tiếp theo.
+- Kiểm tra thư mục làm việc của notebook và đường dẫn đầu ra được ghi trong notebook.
+- Sau khi chạy, kiểm tra `data/` có đủ bốn file `train.en`, `train.vi`, `valid.en`, `valid.vi` hay chưa.
+
+README này không thể xác định lỗi cụ thể bên trong notebook nếu chưa xem nội dung và thông báo lỗi của notebook.
+
 ### Không khôi phục được checkpoint
 
 Kiểm tra:
@@ -619,7 +715,7 @@ ls -lh run_en_vi/
 
 Đảm bảo `model_dir` trong `data.yml` đúng và các file checkpoint (`.index`, `.data-*`) còn đầy đủ. Không thay đổi hoặc tạo lại vocabulary khác trong khi tiếp tục dùng checkpoint cũ nếu chưa thực hiện quy trình cập nhật vocabulary tương thích.
 
-## 15. Khuyến nghị khi đưa dự án lên GitHub
+## 14. Khuyến nghị khi đưa dự án lên GitHub
 
 Không nên commit môi trường ảo `.venv/` vì đây là thư mục chứa nhiều gói cài đặt theo máy. Checkpoint và dữ liệu song ngữ cũng có thể rất lớn hoặc bị giới hạn quyền chia sẻ.
 
@@ -639,9 +735,9 @@ run_en_vi/
 data/
 ```
 
-Nếu bỏ qua `data/` hoặc `run_en_vi/`, cần ghi rõ trong README rằng người dùng phải tự chuẩn bị dữ liệu và huấn luyện lại để tạo checkpoint. Không bỏ qua `src-vocab.txt`/`tgt-vocab.txt` nếu muốn người khác dùng trực tiếp đúng vocabulary đã huấn luyện; nếu không chia sẻ các file này, cần hướng dẫn tạo lại bằng đúng dữ liệu và tokenizer.
+Nếu bỏ qua `data/` hoặc `run_en_vi/`, cần ghi rõ trong README rằng người dùng phải tự chạy `prepare_data.ipynb` để tạo dữ liệu và huấn luyện lại để tạo checkpoint. Không bỏ qua `src-vocab.txt`/`tgt-vocab.txt` nếu muốn người khác dùng trực tiếp đúng vocabulary đã huấn luyện; nếu không chia sẻ các file này, cần hướng dẫn tạo lại bằng đúng dữ liệu và tokenizer.
 
-## 16. Tài liệu tham khảo
+## 15. Tài liệu tham khảo
 
 - [OpenNMT-tf 2.32 – Installation](https://opennmt.net/OpenNMT-tf/installation.html)
 - [OpenNMT-tf 2.32 – Quickstart](https://opennmt.net/OpenNMT-tf/quickstart.html)
@@ -653,4 +749,4 @@ Nếu bỏ qua `data/` hoặc `run_en_vi/`, cần ghi rõ trong README rằng ng
 
 ---
 
-**Ghi chú:** Đây là hướng dẫn tái hiện cấu hình thực nghiệm OpenNMT-tf 2.32.0 + TensorFlow 2.13.1 trên Ubuntu 22.04 WSL2. Khi sử dụng GPU hoặc hệ điều hành khác, cần đối chiếu lại driver và ma trận tương thích CUDA/cuDNN chính thức.
+**Tóm tắt quy trình:** Cài WSL2/Ubuntu và driver NVIDIA trên Windows → cài CUDA Toolkit trong WSL → tạo môi trường `.venv` và cài thư viện → cài Jupyter/ipykernel → chạy toàn bộ `prepare_data.ipynb` để tạo `data/train.en`, `data/train.vi`, `data/valid.en`, `data/valid.vi` → kiểm tra dữ liệu → tạo `tokenizer.yml` và vocabulary → cấu hình `data.yml` → huấn luyện Transformer bằng OpenNMT-tf → đánh giá → chạy inference.
