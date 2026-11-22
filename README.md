@@ -20,10 +20,13 @@ NLP_Projects/
 │   └── ...
 │
 └── NLP_tieu_luan/
-    ├── README.md
+    ├── Thuc_nghiem_Text_to_SQL
+        ├── README_Text2SQL_fine_tuning
+        └── README_Text2SQL_Evaluation
+        └── Process.ipynb
+        └── ...
     ├── requirements.txt
     ├── ...
-    └── ...
 ```
 
 ## 2. Nội dung các thư mục
