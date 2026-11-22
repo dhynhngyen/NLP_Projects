@@ -57,7 +57,7 @@ Các thành phần chính có thể bao gồm:
 - **Tệp cấu hình:** Các tệp thiết lập tham số và cấu hình phục vụ quá trình chạy chương trình.
 - **Kết quả thực nghiệm:** Các kết quả, biểu đồ hoặc tài liệu cần thiết để phân tích và đánh giá mô hình.
 
-Các thông tin chi tiết về nguồn dữ liệu, cách chuẩn bị dữ liệu, môi trường và hướng dẫn chạy thực nghiệm nên được trình bày trong file `README.md` bên trong thư mục `NLP_tieu_luan`.
+Các thông tin chi tiết về nguồn dữ liệu, cách chuẩn bị dữ liệu, môi trường và hướng dẫn chạy thực nghiệm nên được trình bày trong file `README_Text2SQL_fine_tuning.md`  và chi tiết cách đánh giá kết quả thông qua chỉ số EX và EM được trình bày trong `README_Text2SQL_Evaluation` bên trong thư mục `Thuc_nghiem_Text_to_SQL` của thư mục `NLP_tieu_luan`.
 
 ## 3. Quản lý môi trường và dữ liệu
 
