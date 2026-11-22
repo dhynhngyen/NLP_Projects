@@ -52,9 +52,7 @@ Thư mục này chứa các tài liệu và tệp thực nghiệm phục vụ qu
 Các thành phần chính bao gồm:
 
 - **Thư mục Thuc_nghiem_Text_to_SQL:** Các chương trình được xây dựng và sử dụng trong quá trình thực nghiệm.
-- **Jupyter Notebook:** Các notebook phục vụ xử lý dữ liệu, thử nghiệm phương pháp và theo dõi kết quả.
-- **Dữ liệu:** Các bộ dữ liệu được sử dụng trong quá trình thực nghiệm, bao gồm dữ liệu đầu vào và dữ liệu đã qua xử lý (nếu có).
-- **Tệp cấu hình:** Các tệp thiết lập tham số và cấu hình phục vụ quá trình chạy chương trình.
+
 Trong thư mục `Thuc_nghiem_Text_to_SQL` bao gồm:
 - **File process.ipynb**: Chứa mã nguồn chương trình fine tune model t5 small
 - **README_Text2SQL_fine_tuning.md**: Hướng dẫn chuẩn bị dữ liệu, môi trường và hướng dẫn chạy thực nghiệm
